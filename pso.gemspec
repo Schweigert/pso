@@ -10,6 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['marlon.henry@magrathealabs.com']
 
   spec.summary       = 'Particle Swarm Optimization'
+  spec.description   = 'Particle Swarm Optimization'
   spec.homepage      = 'http://www.github.com/schweigert/pso'
   spec.license       = 'MIT'
 
