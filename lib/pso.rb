@@ -1,5 +1,5 @@
 require 'pso/version'
+require 'pso/solver'
 
 module Pso
-  # Your code goes here...
 end
