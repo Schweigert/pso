@@ -1,10 +1,11 @@
 require 'thread'
 require 'pso/zero_vector'
 require 'pso/functions/rastrigin'
+require 'pry'
 
 module Pso
   class Solver
-    def initialize(din: 5, density: 5000, f: Pso::Rastrigin, center: ZeroVector[0,0,0,0,0], radius: 5.12, method: :min_by)
+    def initialize(din: 5, density: 50, f: Pso::Rastrigin, center: ZeroVector[0,0,0,0,0], radius: 5.12, method: :min_by)
       @f = f.new
       @din = din
       @center = center
@@ -19,6 +20,7 @@ module Pso
       Array.new(@density)
       @swarm = Array.new(@density) { generate_random_particle }
       @swarm_best = @swarm.map { |particle| [@f.f(particle), particle] }
+      @swarm_speed = @swarm.map { generate_random_particle }
     end
 
     def generate_random_noise_particle
@@ -41,18 +43,16 @@ module Pso
       end
     end
 
-    def solve(precision: 2000, threads: 4)
+    def solve(precision: 200000, threads: 1)
       Array.new(threads).map do
         Thread.new do
-          (precision / threads).times do
-            perfect = perfect_particle
-            for index in 0...@din
-              new_vector = normalize(interate(@swarm[index], @swarm_best[index].last, perfect))
-
-              if is_best(@swarm_best[index].first, @f.f(new_vector))
-                @swarm_best[index] = [@f.f(new_vector), new_vector]
-              end
-
+          ((precision / @swarm.size) / threads).times do |interation_number|
+            for index in 0...@density
+              perfect = perfect_particle
+              puts @f.f perfect
+              new_vector = normalize(interate(@swarm[index], @swarm_best[index].last, perfect, @swarm_speed[index]))
+              @swarm_best[index] = [@f.f(new_vector), new_vector] if is_best(@swarm_best[index].first, @f.f(new_vector))
+              @swarm_speed[index] = (new_vector - @swarm[index]).normalize
               @swarm[index] = new_vector
             end
           end
@@ -83,8 +83,13 @@ module Pso
       vector
     end
 
-    def interate(vector, best, perfect)
-      return vector + (generate_random_noise_particle) + (best - vector).normalize + (perfect - vector).normalize
+    def interate(vector, best, perfect, speed)
+      if vector == perfect
+        new_vec = vector + (best - vector).normalize * 0.2 + (generate_random_noise_particle) * rand * 0.05 + speed * 0.05
+        minimal = @f.f(vector) > @f.f(new_vec)
+        return @method == :min_by ? (minimal ? new_vec : vector) : ( minimal ? vector : new_vec)
+      end
+      vector + (generate_random_noise_particle) * rand * 0.1 + (best - vector).normalize * 0.5 + (perfect - vector).normalize + speed
     end
   end
 end
